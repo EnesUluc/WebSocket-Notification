@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Real-Time Notifications</title>
+    <script src="https://cdn.jsdelivr.net/npm/sockjs-client/dist/sockjs.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/stompjs/lib/stomp.min.js"></script>
+    <style>
+        .message-panel{
+            display: flex;
+            flex-direction: column;
+            width: 300px;
+            justify-self: center;
+            gap: .5rem;
+        }
+        .chat{
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: .5rem;
+            font-size: 1.2rem;
+            margin: 2rem .5rem;
+            border-radius: 4px;
+
+        }
+        #notifications p{
+            background-color: #EEEEEE;
+            padding: .6rem 1.2rem;
+
+        }
+
+    </style>
+</head>
+<body>
+    <section class="message-panel">
+        <h1>Real-Time Notifications</h1>
+        <input type="text" id="username" placeholder="Enter your name">
+        <input type="text" id="message" placeholder="Enter your message">
+        <button onclick="sendMessage()">Send</button>
+    </section>
+    <section class="chat">
+        <div id="notifications"></div>
+    </section>
+<script>
+    let stompClient = null;
+
+    function connect() {
+    const socket = new SockJS('http://localhost:8080/ws');
+    stompClient = Stomp.over(socket);
+
+    stompClient.connect({}, function (frame) {
+        console.log('Connected: ' + frame);  // Log the successful connection
+        stompClient.subscribe('/topic/notifications', function (message) {
+            showNotification(message.body);  // Handle incoming messages
+        });
+    }, function (error) {
+        console.error('WebSocket connection error: ' + error);  // Log WebSocket errors
+    });
+}
+
+
+  function sendMessage() {
+    const user = document.getElementById('username').value;
+     if (!user) {
+        if (!user) {
+            alert("Enter a username");
+            return;
+        }
+    }
+    document.getElementById('username').style.display = "none";
+
+    const message = document.getElementById('message').value;
+    if (stompClient && stompClient.connected) {
+        const msgObj = {user: user, message: message};
+        stompClient.send('/app/sendMessage', {}, JSON.stringify(msgObj));
+        console.log('Message sent:', msgObj);
+    } else {
+        console.error('WebSocket connection is not established.');
+    }
+}
+
+  function showNotification(messageBody) {
+    const notifications = document.getElementById('notifications');
+    const notification = document.createElement('p');
+
+    try {
+        // JSON parse et
+        const msg = JSON.parse(messageBody);
+        notification.textContent = msg.user + ": " + msg.message;
+    } catch (e) {
+        notification.textContent = messageBody;
+    }
+
+    notifications.appendChild(notification);
+}
+
+  connect();
+</script>
+</body>
+</html>
